@@ -1,0 +1,58 @@
+from matplotlib_venn import venn3, venn3_circles
+import matplotlib.pyplot as plt
+
+# Step 1: take user input
+total_tested = int(input("Enter total tested: "))
+total_positive = int(input("Enter total positives (|A ∪ B ∪ C|): "))
+
+A  = int(input("Enter positives for Drug A: "))
+B  = int(input("Enter positives for Drug B: "))
+C  = int(input("Enter positives for Drug C: "))
+AnB = int(input("Enter positives for A and B: "))
+AnC = int(input("Enter positives for A and C: "))
+BnC = int(input("Enter positives for B and C: "))
+
+# Step 2: triple overlap
+AnBnC = total_positive - (A + B + C - AnB - AnC - BnC)
+print(f"Calculated triple overlap (A ∩ B ∩ C): {AnBnC}")
+
+# (Optional) quick sanity check
+if AnBnC < 0 or any(x < AnBnC for x in [AnB, AnC, BnC]):
+    print("Warning: overlaps inconsistent; check inputs.")
+
+# Step 3: subsets for venn3
+subsets = (
+    A - AnB - AnC + AnBnC,   # A only
+    B - AnB - BnC + AnBnC,   # B only
+    AnB - AnBnC,             # A ∩ B only
+    C - AnC - BnC + AnBnC,   # C only
+    AnC - AnBnC,             # A ∩ C only
+    BnC - AnBnC,             # B ∩ C only
+    AnBnC                    # A ∩ B ∩ C
+)
+
+# --- define combo_counts before using it ---
+combo_counts = {
+    "Drug A": A, "Drug B": B, "Drug C": C,
+    "Drug A∩B": AnB, "Drug A∩C": AnC, "Drug B∩C": BnC,
+    "Drug A∩B∩C": AnBnC
+}
+
+
+choice = input("Type 'best' or 'worst': ").strip().lower()
+if choice == "best":
+    best_val = max(combo_counts.values())
+    best = [k for k, v in combo_counts.items() if v == best_val]
+    print(f"Best: {', '.join(best)} with {best_val} positives")
+elif choice == "worst":
+    worst_val = min(combo_counts.values())
+    worst = [k for k, v in combo_counts.items() if v == worst_val]
+    print(f"Worst: {', '.join(worst)} with {worst_val} positives")
+else:
+    print("Invalid choice. Please type 'best' or 'worst'.")
+
+# Step 5: plot
+v = venn3(subsets=subsets, set_labels=('Drug A','Drug B','Drug C'))
+venn3_circles(subsets=subsets, linewidth=2, color="black")
+plt.title("Drug Trial Results")
+plt.show()
