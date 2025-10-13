@@ -1,5 +1,7 @@
+# Aniruddha M Dhir
 from matplotlib_venn import venn3, venn3_circles
 import matplotlib.pyplot as plt
+from matplotlib.patches import Rectangle
 
 # Step 1: take user input
 total_tested = int(input("Enter total tested: "))
@@ -16,11 +18,7 @@ BnC = int(input("Enter positives for B and C: "))
 AnBnC = total_positive - (A + B + C - AnB - AnC - BnC)
 print(f"Calculated triple overlap (A ∩ B ∩ C): {AnBnC}")
 
-# (Optional) quick sanity check
-if AnBnC < 0 or any(x < AnBnC for x in [AnB, AnC, BnC]):
-    print("Warning: overlaps inconsistent; check inputs.")
-
-# Step 3: subsets for venn3
+# Step 3: subsets for venn3 (disjoint regions)
 subsets = (
     A - AnB - AnC + AnBnC,   # A only
     B - AnB - BnC + AnBnC,   # B only
@@ -31,28 +29,58 @@ subsets = (
     AnBnC                    # A ∩ B ∩ C
 )
 
-# --- define combo_counts before using it ---
+# Step 4: calculate 000 (outside region)
+outside = total_tested - total_positive
+print(f"Outside all drugs (000 region): {outside}")
+
+# Step 5: disjoint region counts for best/worst (exclude 000)
 combo_counts = {
-    "Drug A": A, "Drug B": B, "Drug C": C,
-    "Drug A∩B": AnB, "Drug A∩C": AnC, "Drug B∩C": BnC,
+    "Drug A only": A - AnB - AnC + AnBnC,
+    "Drug B only": B - AnB - BnC + AnBnC,
+    "Drug C only": C - AnC - BnC + AnBnC,
+    "Drug A∩B only": AnB - AnBnC,
+    "Drug A∩C only": AnC - AnBnC,
+    "Drug B∩C only": BnC - AnBnC,
     "Drug A∩B∩C": AnBnC
 }
 
-
+# Step 6: choose best or worst (000 not included)
 choice = input("Type 'best' or 'worst': ").strip().lower()
 if choice == "best":
     best_val = max(combo_counts.values())
     best = [k for k, v in combo_counts.items() if v == best_val]
-    print(f"Best: {', '.join(best)} with {best_val} positives")
+    print(f" Best region: {', '.join(best)} with {best_val} positives")
 elif choice == "worst":
     worst_val = min(combo_counts.values())
     worst = [k for k, v in combo_counts.items() if v == worst_val]
-    print(f"Worst: {', '.join(worst)} with {worst_val} positives")
+    print(f" Worst region: {', '.join(worst)} with {worst_val} positives")
 else:
     print("Invalid choice. Please type 'best' or 'worst'.")
 
-# Step 5: plot
-v = venn3(subsets=subsets, set_labels=('Drug A','Drug B','Drug C'))
-venn3_circles(subsets=subsets, linewidth=2, color="black")
-plt.title("Drug Trial Results")
+# Step 7: plot layout (grey box + title above box)
+fig, ax = plt.subplots(figsize=(7,7))
+
+# --- grey box background ---
+greyBox = Rectangle((0,0), 1, 1, transform=ax.transAxes,
+                    facecolor="lightgray", edgecolor="black", linewidth=3)
+ax.add_patch(greyBox)
+
+# Remove axes & fix scale
+ax.set_xlim(0,1)
+ax.set_ylim(0,1)
+ax.axis("off")
+
+# --- title outside (above the box) ---
+plt.suptitle("Positives of Drug Testing", fontsize=18, fontweight='bold', y=1.0)
+
+# --- draw venn diagram ---
+v = venn3(subsets=subsets, set_labels=('Drug A','Drug B','Drug C'), ax=ax)
+venn3_circles(subsets=subsets, linewidth=2, color="black", ax=ax)
+
+# --- show 000 value (plain text, no box) ---
+ax.text(0.8, 0.05, str(outside),
+        transform=ax.transAxes, fontsize=13,
+        ha="center", va="center", fontweight='bold')
+
+plt.tight_layout()
 plt.show()
